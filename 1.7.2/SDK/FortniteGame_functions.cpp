@@ -4916,6 +4916,18 @@ float UFortGameData::GetTeamXpBoost()
 	return Parms.ReturnValue;
 }
 
+class UFortGameData* UFortGameData::Get()
+{
+	static auto Func = reinterpret_cast<UFortGameData * (*)()>(ImageBase + 0x574730);
+	return Func();
+}
+
+class UFortResourceItemDefinition* UFortGameData::GetResourceItemDefinition(EFortResourceType Type)
+{
+	static auto Func = reinterpret_cast<UFortResourceItemDefinition* (*)(UFortGameData*, EFortResourceType)>(ImageBase + 0x57A1F0);
+	return Func(this, Type);
+}
+
 
 // Function FortniteGame.FortPlayerDBNORevivedParams.BreakParams
 // (Final, Native, Public, HasOutParams, BlueprintCallable, BlueprintPure)
@@ -9288,6 +9300,15 @@ bool ABuildingSMActor::WillRegisterWithStructuralGrid() const
 	return Parms.ReturnValue;
 }
 
+int ABuildingSMActor::GetCostToRepair(const class AFortPlayerController* Player)
+{
+	static auto Func = reinterpret_cast<int(*)(class ABuildingSMActor*, const class AFortPlayerController*)>(this->VTable[0x15F]);
+	if (Func == nullptr)
+		return -1;
+
+	return Func(this, Player);
+}
+
 
 // Function FortniteGame.FortPlayerController.ActivateSlot
 // (Final, BlueprintAuthorityOnly, Native, Public, BlueprintCallable)
@@ -12673,6 +12694,15 @@ class UFortItem* AFortPlayerController::K2_FindExistingItemForDefinition(const c
 	return Parms.ReturnValue;
 }
 
+
+void AFortPlayerController::UpdateSpendingStats(class UFortItem* Item, int Count)
+{
+	static auto Func = reinterpret_cast<void(*)(AFortPlayerController*, const UFortItem*, int)>(ImageBase + 0x832D70);
+	if (Func == nullptr)
+		return;
+
+	return Func(this, Item, Count);
+}
 
 // Function FortniteGame.FortPlayerControllerGameplay.RefreshHUDElementVisibilitiesToSettings
 // (Final, Native, Public, BlueprintCallable)

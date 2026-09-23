@@ -2,7 +2,7 @@
 #include "Abilities.h"
 
 void ConsumeAllReplicatedData(UFortAbilitySystemComponentAthena* AbilitySystemComponent, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey) {
-    auto& AbilityTargetDataMap = *(FGameplayAbilityReplicatedDataContainer*)(__int64(AbilitySystemComponent) + offsetof(UAbilitySystemComponent, ActivatableAbilities) + sizeof(FGameplayAbilitySpecContainer));
+    FGameplayAbilityReplicatedDataContainer& AbilityTargetDataMap = *(FGameplayAbilityReplicatedDataContainer*)(__int64(AbilitySystemComponent) + offsetof(UAbilitySystemComponent, ActivatableAbilities) + sizeof(FGameplayAbilitySpecContainer));
 
     for (FGameplayAbilityReplicatedDataContainer::FKeyDataPair& Pair : AbilityTargetDataMap.InUseData)
     {
@@ -16,10 +16,11 @@ void ConsumeAllReplicatedData(UFortAbilitySystemComponentAthena* AbilitySystemCo
 
 
 void Abilities::InternalServerTryActivateAbility(UFortAbilitySystemComponentAthena* AbilitySystemComponent, FGameplayAbilitySpecHandle Handle, bool InputPressed, FPredictionKey& PredictionKey, FGameplayEventData* TriggerEventData) {
-    auto Spec = AbilitySystemComponent->ActivatableAbilities.Items.Search([&](FGameplayAbilitySpec& item) {
+    FGameplayAbilitySpec* Spec = AbilitySystemComponent->ActivatableAbilities.Items.Search([&](FGameplayAbilitySpec& item) {
         return item.Handle.Handle == Handle.Handle;
         });
-    if (!Spec)
+
+    if (Spec == nullptr)
         return AbilitySystemComponent->ClientActivateAbilityFailed(Handle, PredictionKey.Current);
 
     ConsumeAllReplicatedData(AbilitySystemComponent, Handle, PredictionKey);
@@ -27,7 +28,7 @@ void Abilities::InternalServerTryActivateAbility(UFortAbilitySystemComponentAthe
 
     UGameplayAbility* InstancedAbility = nullptr;
     auto Abilites = (bool (*)(UAbilitySystemComponent*, FGameplayAbilitySpecHandle, FPredictionKey, UGameplayAbility**, void*, const FGameplayEventData*)) (ImageBase + 0x3d51d30);
-    if (!Abilites(AbilitySystemComponent, Handle, PredictionKey, &InstancedAbility, nullptr, TriggerEventData))
+    if (Abilites(AbilitySystemComponent, Handle, PredictionKey, &InstancedAbility, nullptr, TriggerEventData) == false)
     {
         AbilitySystemComponent->ClientActivateAbilityFailed(Handle, PredictionKey.Current);
         Spec->InputPressed = false;
@@ -37,7 +38,7 @@ void Abilities::InternalServerTryActivateAbility(UFortAbilitySystemComponentAthe
 
 void Abilities::GiveAbility(UAbilitySystemComponent* AbilitySystemComponent, UObject* Ability)
 {
-    if (!AbilitySystemComponent || !Ability)
+    if (AbilitySystemComponent == nullptr || Ability == nullptr)
         return;
 
     FGameplayAbilitySpec Spec{};
@@ -54,13 +55,16 @@ void Abilities::GiveAbility(UAbilitySystemComponent* AbilitySystemComponent, UOb
 
 void Abilities::GiveAbilitySet(UAbilitySystemComponent* AbilitySystemComponent, UFortAbilitySet* Set)
 {
-    if (Set)
+    if (Set == nullptr)
+        return;
+
+    for (TSubclassOf<UFortGameplayAbility> GameplayAbility : Set->GameplayAbilities)
     {
-        for (auto& GameplayAbility : Set->GameplayAbilities)
-            GiveAbility(AbilitySystemComponent, GameplayAbility->DefaultObject);
+        GiveAbility(AbilitySystemComponent, GameplayAbility->DefaultObject);
     }
 }
 
-void Abilities::Hook() {
+void Abilities::Hook() 
+{
     Utils::HookEvery<UAbilitySystemComponent>(0xc9, InternalServerTryActivateAbility);
 }

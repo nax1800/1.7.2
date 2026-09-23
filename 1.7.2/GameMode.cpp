@@ -5,8 +5,9 @@
 #include "Player.h"
 #include "Inventory.h"
 
-void SetPlaylist(AFortGameModeAthena* GameMode) {
-	auto GameState = (AFortGameStateAthena*)GameMode->GameState;
+void SetPlaylist(AFortGameModeAthena* GameMode) 
+{
+	AFortGameStateAthena* GameState = GameMode->GameState->Cast<AFortGameStateAthena>();
 
 	GameState->CurrentPlaylistId = GameMode->CurrentPlaylistId = 1;
 
@@ -14,27 +15,30 @@ void SetPlaylist(AFortGameModeAthena* GameMode) {
 }
 
 bool bReady = false;
-void GameMode::ReadyToStartMatch(UObject* Context, FFrame& Stack, bool* Ret) {
+void GameMode::ReadyToStartMatch(UObject* Context, FFrame& Stack, bool* Ret) 
+{
 	Stack.IncrementCode();
-	auto GameMode = Context->Cast<AFortGameModeAthena>();
-	if (!GameMode) {
+	AFortGameModeAthena* GameMode = Context->Cast<AFortGameModeAthena>();
+	if (GameMode == nullptr) 
+	{
 		*Ret = callOGWithRet(((AGameMode*)Context), Stack.CurrentNativeFunction, ReadyToStartMatch);
 		return;
 	}
-	auto GameState = ((AFortGameStateAthena*)GameMode->GameState);
-	static bool bWhy = false;
-	if (!bWhy) {
-		bWhy = true;
+	AFortGameStateAthena* GameState = GameMode->GameState->Cast<AFortGameStateAthena>();
+	if (GameMode->WarmupRequiredPlayerCount != 1)
+	{
 		GameMode->WarmupRequiredPlayerCount = 1;
 
 		SetPlaylist(GameMode);
 	}
 
-	if (!GameMode->bWorldIsReady) {
-		auto Starts = Utils::GetAll<AFortPlayerStartWarmup>();
-		auto StartsNum = Starts.Num();
+	if (!GameMode->bWorldIsReady) 
+	{
+		TArray<AFortPlayerStartWarmup*> Starts = Utils::GetAll<AFortPlayerStartWarmup>();
+		int32 StartsNum = Starts.Num();
 		Starts.Free();
-		if (StartsNum == 0 || !GameState->MapInfo) {
+		if (StartsNum == 0 || GameState->MapInfo == nullptr) 
+		{
 			*Ret = false;
 			return;
 		}
@@ -43,36 +47,39 @@ void GameMode::ReadyToStartMatch(UObject* Context, FFrame& Stack, bool* Ret) {
 
 		GameMode->DefaultPawnClass = Utils::FindObject<UClass>(L"/Game/Athena/PlayerPawn_Athena.PlayerPawn_Athena_C");
 		Utils::Patch<uint8>(ImageBase + 0x137DBC0, 0xc3);
-		SetConsoleTitleA("Sarah 1.7.2: Ready");
+		SetConsoleTitleA("1.7.2: Ready || Credits to @plooshi");
 		GameMode->bWorldIsReady = true;
 	}
 
 	*Ret = callOGWithRet(((AGameMode*)Context), Stack.CurrentNativeFunction, ReadyToStartMatch);
 }
 
-APawn* GameMode::SpawnDefaultPawnFor(UObject* Context, FFrame& Stack, APawn** Ret) {
+APawn* GameMode::SpawnDefaultPawnFor(UObject* Context, FFrame& Stack, APawn** Ret) 
+{
 	AController* NewPlayer;
 	AActor* StartSpot;
 	Stack.StepCompiledIn(&NewPlayer);
 	Stack.StepCompiledIn(&StartSpot);
 	Stack.IncrementCode();
-	auto GameMode = (AFortGameModeAthena*)Context;
-	auto Transform = StartSpot->GetTransform();
-	auto Pawn = GameMode->SpawnDefaultPawnAtTransform(NewPlayer, Transform);
+	AFortGameModeAthena* GameMode = Context->Cast<AFortGameModeAthena>();
+	FTransform Transform = StartSpot->GetTransform();
+	APawn* Pawn = GameMode->SpawnDefaultPawnAtTransform(NewPlayer, Transform);
 
-	auto PlayerController = NewPlayer->Cast<AFortPlayerControllerAthena>();
-	if (!PlayerController) return *Ret = Pawn;
+	AFortPlayerControllerAthena* PlayerController = NewPlayer->Cast<AFortPlayerControllerAthena>();
+	if (PlayerController == nullptr) 
+		return *Ret = Pawn;
 
-	auto Num = PlayerController->WorldInventory->Inventory.ReplicatedEntries.Num();
-	if (Num != 0) {
-		//PlayerController->WorldInventory->Inventory.ReplicatedEntries.ResetNum();
-		//PlayerController->WorldInventory->Inventory.ItemInstances.ResetNum();
+	int32 Num = PlayerController->WorldInventory->Inventory.ReplicatedEntries.Num();
+	if (Num != 0) 
+	{
 		bool bStarting = false;
-		for (auto& Entry : PlayerController->WorldInventory->Inventory.ReplicatedEntries)
+		for (FFortItemEntry& Entry : PlayerController->WorldInventory->Inventory.ReplicatedEntries)
 		{
-			for (auto& StartingItem : ((AFortGameModeAthena*)GameMode)->StartingItems)
+			for (FItemAndCount& StartingItem : GameMode->StartingItems)
+			{
 				if (StartingItem.Item == Entry.ItemDefinition)
 					bStarting = true;
+			}
 			
 			if (!bStarting)
 				Inventory::Remove(PlayerController, Entry.ItemGuid);
@@ -81,60 +88,55 @@ APawn* GameMode::SpawnDefaultPawnFor(UObject* Context, FFrame& Stack, APawn** Re
 	else 
 	{
 		Inventory::GiveItem(PlayerController, Utils::FindObject<UFortItemDefinition>(L"/Game/Athena/Items/Weapons/WID_Harvest_Pickaxe_Athena_C_T01.WID_Harvest_Pickaxe_Athena_C_T01"));
-		for (auto& StartingItem : ((AFortGameModeAthena*)GameMode)->StartingItems)
+		for (FItemAndCount& StartingItem : GameMode->StartingItems)
 		{
 			if (StartingItem.Count)
-			{
 				Inventory::GiveItem(PlayerController, StartingItem.Item, StartingItem.Count);
-			}
 		}
 	}
 
 
 	if (Num == 0)
 	{
-		auto PlayerState = (AFortPlayerStateAthena*)PlayerController->PlayerState;
+		AFortPlayerStateAthena* PlayerState = PlayerController->PlayerState->Cast<AFortPlayerStateAthena>();
 
-		for (auto& AbilitySet : AbilitySets)
+		for (UFortAbilitySet* AbilitySet : AbilitySets)
+		{
 			Abilities::GiveAbilitySet(PlayerState->AbilitySystemComponent, AbilitySet);
-
-
-		/**lstatic auto Head = Utils::FindObject<UCustomCharacterPart>(L"/Game/Characters/CharacterParts/Female/Medium/Heads/F_Med_Head1.F_Med_Head1");
-		static auto Body = Utils::FindObject<UCustomCharacterPart>(L"/Game/Characters/CharacterParts/Female/Medium/Bodies/F_Med_Soldier_01.F_Med_Soldier_01");
-		PlayerState->CharacterParts[(int)EFortCustomPartType::Head] = Head;
-		PlayerState->CharacterParts[(int)EFortCustomPartType::Body] = Body;*/
-
+		}
 
 		TArray<UFortHeroType*> HeroTypes;
 		for (int i = 0; i < UObject::GObjects->Num(); i++)
 		{
-			auto HeroType = UObject::GObjects->GetByIndex(i)->Cast<UFortHeroType>();
+			UFortHeroType* HeroType = UObject::GObjects->GetByIndex(i)->Cast<UFortHeroType>();
 			if (UKismetSystemLibrary::GetPathName(HeroType).ToString().starts_with("/Game/Athena/Heroes/"))
 				HeroTypes.Add(HeroType);
 		}
 
 		std::random_device rd;
 		std::mt19937 gen(rd());
-		std::uniform_int_distribution<std::size_t> dist(0, HeroTypes.Num() - 1); // maps the random number to [0..number of words]
+		std::uniform_int_distribution<std::size_t> dist(0, HeroTypes.Num() - 1);
 
-		for (auto& Spec : HeroTypes[int32(dist(gen))]->Specializations)
+		for (UFortHeroSpecialization* Spec : HeroTypes[int32(dist(gen))]->Specializations)
 		{
-			for (auto& Part : Spec->CharacterParts)
+			for (UCustomCharacterPart* Part : Spec->CharacterParts)
 			{
 				PlayerState->CharacterParts[(int) Part->CharacterPartType] = Part;
 			}
 		}
 
-		((void (*)(APlayerState*, APawn*)) (ImageBase + 0x217db10))(PlayerController->PlayerState, Pawn);
+		((void (*)(APlayerState*, APawn*)) (ImageBase + 0x217DB10))(PlayerController->PlayerState, Pawn);
 	}
 
 	return *Ret = Pawn;
 }
 
-EFortTeam GameMode::PickTeam(AFortGameModeAthena* GameMode, uint8_t PreferredTeam, AFortPlayerControllerAthena* Controller) {
+EFortTeam GameMode::PickTeam(AFortGameModeAthena* GameMode, uint8_t PreferredTeam, AFortPlayerControllerAthena* Controller) 
+{
 	uint8_t ret = CurrentTeam;
 
-	if (++PlayersOnCurTeam >= 1) {
+	if (++PlayersOnCurTeam >= 1) 
+	{
 		CurrentTeam++;
 		PlayersOnCurTeam = 0;
 	}
@@ -142,19 +144,22 @@ EFortTeam GameMode::PickTeam(AFortGameModeAthena* GameMode, uint8_t PreferredTea
 	return EFortTeam(ret);
 }
 
-UClass** GetGameSessionClass(AFortGameMode*, UClass** OutClass) {
+UClass** GetGameSessionClass(AFortGameMode*, UClass** OutClass) 
+{
 	*OutClass = AFortGameSessionDedicated::StaticClass();
 	return OutClass;
 }
 
 
-void GameMode::HandleStartingNewPlayer(UObject* Context, FFrame& Stack) {
+void GameMode::HandleStartingNewPlayer(UObject* Context, FFrame& Stack) 
+{
 	AFortPlayerControllerAthena* NewPlayer;
 	Stack.StepCompiledIn(&NewPlayer);
 	Stack.IncrementCode();
-	auto GameMode = (AFortGameModeAthena*)Context;
-	auto GameState = (AFortGameStateAthena*)GameMode->GameState;
-	AFortPlayerStateAthena* PlayerState = (AFortPlayerStateAthena*)NewPlayer->PlayerState;
+
+	AFortGameModeAthena* GameMode = Context->Cast<AFortGameModeAthena>();
+	AFortGameStateAthena* GameState = GameMode->GameState->Cast<AFortGameStateAthena>();
+	AFortPlayerStateAthena* PlayerState = NewPlayer->PlayerState->Cast<AFortPlayerStateAthena>();
 
 	return callOG(GameMode, Stack.CurrentNativeFunction, HandleStartingNewPlayer, NewPlayer);
 }

@@ -8,10 +8,20 @@ void Main() {
     AllocConsole();
     FILE* f;
     freopen_s(&f, "CONOUT$", "w", stdout);
-    SetConsoleTitleA("Sarah 1.7.2: Setting up");
+    SetConsoleTitleA("1.7.2: Setting up || Credits to @plooshi");
     LogCategory = FName(L"LogGameserver");
-    //auto FrontEndGameMode = (AFortGameMode*)UWorld::GetWorld()->AuthorityGameMode;
-    //while (FrontEndGameMode->MatchState != FName(L"InProgress"));
+
+    UFortGameData* GameData = UFortGameData::Get();
+    Log(L"GameData->WoodItemDefinition: %s", GameData->WoodItemDefinition->GetWName().c_str());
+    Log(L"GameData->StoneItemDefinition: %s", GameData->StoneItemDefinition->GetWName().c_str());
+    Log(L"GameData->MetalItemDefinition: %s", GameData->MetalItemDefinition->GetWName().c_str());
+
+    for (TSoftObjectPtr<UFortHeroType>& Hero : GameData->DefaultAthenaHeroes)
+    {
+        if(Hero.Get() != nullptr)
+			Log(L"GameData->DefaultAthenaHeroes: %s", Hero.Get()->GetWName().c_str());
+    }
+
     Sleep(2000);
 
     MH_Initialize();
@@ -21,24 +31,16 @@ void Main() {
     srand((uint32_t)time(0));
 
     *(bool*)(ImageBase + Sarah::Offsets::GIsClient) = false;
-    //*(bool*)(ImageBase + Sarah::Offsets::GIsClient + 1) = true;
+
     UWorld::GetWorld()->OwningGameInstance->LocalPlayers.Remove(0);
     UKismetSystemLibrary::ExecuteConsoleCommand(UWorld::GetWorld(), L"open Athena_Terrain", nullptr);
 }
 
-BOOL APIENTRY DllMain( HMODULE hModule,
-                       DWORD  ul_reason_for_call,
-                       LPVOID lpReserved
-                     )
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD ulReason, LPVOID lpReserved)
 {
-    switch (ul_reason_for_call)
+    if (ulReason == DLL_PROCESS_ATTACH)
     {
-    case DLL_PROCESS_ATTACH:
         std::thread(Main).detach();
-    case DLL_THREAD_ATTACH:
-    case DLL_THREAD_DETACH:
-    case DLL_PROCESS_DETACH:
-        break;
     }
     return TRUE;
 }

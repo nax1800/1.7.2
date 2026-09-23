@@ -12,21 +12,11 @@ public:
 private:
 	static void ServerExecuteInventoryItem(UObject*, FFrame&);
 	static void ServerReturnToMainMenu(UObject*, FFrame&);
-	static void ServerPlayEmoteItem(UObject*, FFrame&);
-	DefUHookOg(ServerAttemptAircraftJump);
-	DefUHookOg(ServerSendZiplineState);
-	DefUHookOg(ServerHandlePickupInfo);
-	static void MovingEmoteStopped(UObject*, FFrame&);
-public:
-	static void InternalPickup(AFortPlayerControllerAthena*, FFortItemEntry);
-private:
-	DefHookOg(bool, CompletePickupAnimation, AFortPickup*);
-	DefHookOg(void, NetMulticast_Athena_BatchedDamageCues, AFortPlayerPawnAthena*, FAthenaBatchedDamageGameplayCues);
-	static void ReloadWeapon(AFortWeapon*, int);
-	DefHookOg(void, ClientOnPawnDied, AFortPlayerControllerAthena*, FFortPlayerDeathReport&);
-	static void ServerAttemptInventoryDrop(UObject*, FFrame&);
 
-	DefHookOg(void, OnCapsuleBeginOverlap, UObject*, FFrame&);
+public:
+	static int32 PayBuildingRepairCost(AFortPlayerController* Context, ABuildingSMActor* BuildingToRepair);
+private:
+	DefHookOg(void, ClientOnPawnDied, AFortPlayerControllerAthena*, FFortPlayerDeathReport&);
 
 
 	InitHooks;

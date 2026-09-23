@@ -225,6 +225,6 @@ void Building::Hook() {
 	Utils::ExecHook(L"/Script/FortniteGame.FortPlayerController.ServerBeginEditingBuildingActor", ServerBeginEditingBuildingActor);
 	Utils::ExecHook(L"/Script/FortniteGame.FortPlayerController.ServerEditBuildingActor", ServerEditBuildingActor);
 	Utils::ExecHook(L"/Script/FortniteGame.FortPlayerController.ServerEndEditingBuildingActor", ServerEndEditingBuildingActor);
-	Utils::ExecHook(L"/Script/FortniteGame.FortPlayerController.ServerRepairBuildingActor", ServerRepairBuildingActor);
+	//Utils::ExecHook(L"/Script/FortniteGame.FortPlayerController.ServerRepairBuildingActor", ServerRepairBuildingActor);
 	Utils::Hook(ImageBase + 0xa14680, OnDamageServer, OnDamageServerOG);
 }

@@ -2347,6 +2347,9 @@ public:
 	static float GetPersonalXpBoost();
 	static float GetTeamXpBoost();
 
+	static class UFortGameData* Get();
+	class UFortResourceItemDefinition* GetResourceItemDefinition(EFortResourceType Type);
+
 public:
 	static class UClass* StaticClass()
 	{
@@ -4874,6 +4877,7 @@ public:
 	bool IsSupportedByWorld() const;
 	bool WillRegisterWithStructuralGrid() const;
 
+	int GetCostToRepair(const class AFortPlayerController* Player);
 public:
 	static class UClass* StaticClass()
 	{
@@ -5340,6 +5344,8 @@ public:
 	bool IsUsingFirstPersonCamera() const;
 	bool IsUsingGamepad() const;
 	class UFortItem* K2_FindExistingItemForDefinition(const class UFortItemDefinition* ItemDefinition, bool bInStorageVault) const;
+
+	void UpdateSpendingStats(class UFortItem* Item, int Count);
 
 public:
 	static class UClass* StaticClass()
