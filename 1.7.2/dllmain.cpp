@@ -11,17 +11,6 @@ void Main() {
     SetConsoleTitleA("1.7.2: Setting up || Credits to @plooshi");
     LogCategory = FName(L"LogGameserver");
 
-    UFortGameData* GameData = UFortGameData::Get();
-    Log(L"GameData->WoodItemDefinition: %s", GameData->WoodItemDefinition->GetWName().c_str());
-    Log(L"GameData->StoneItemDefinition: %s", GameData->StoneItemDefinition->GetWName().c_str());
-    Log(L"GameData->MetalItemDefinition: %s", GameData->MetalItemDefinition->GetWName().c_str());
-
-    for (TSoftObjectPtr<UFortHeroType>& Hero : GameData->DefaultAthenaHeroes)
-    {
-        if(Hero.Get() != nullptr)
-			Log(L"GameData->DefaultAthenaHeroes: %s", Hero.Get()->GetWName().c_str());
-    }
-
     Sleep(2000);
 
     MH_Initialize();

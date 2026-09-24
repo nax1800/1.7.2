@@ -108,17 +108,28 @@ int32 Player::PayBuildingRepairCost(AFortPlayerController* Context, ABuildingSMA
 			return entry->GetItemDefinitionBP() == ResourceDef;
 			});
 
+		FFortItemEntry* ItemEntry = Context->WorldInventory->Inventory.ReplicatedEntries.Search([&](FFortItemEntry& entry) {
+			return entry.ItemDefinition == ResourceDef;
+			});
+
 		if (ResourceItem)
 		{
 			int32 RepairCost = BuildingToRepair->GetCostToRepair(Context);
-			if (RepairCost == -1)
+			if (RepairCost != -1)
 			{
 				Context->UpdateSpendingStats(ResourceItem, RepairCost);
+
+				Log(L"RepairCost: %i", RepairCost);
+				FGuid ItemGuid = ResourceItem->GetItemGuid();
+
+				ItemEntry->Count -= RepairCost;
+				if (ItemEntry->Count <= 0)
+					Inventory::Remove(Context, ItemEntry->ItemGuid);
+
+				Inventory::ReplaceEntry((AFortPlayerControllerAthena*)Context, *ItemEntry);
+
+				AmountPaid = RepairCost;
 			}
-			Log(L"RepairCost: %i", RepairCost);
-			FGuid ItemGuid = ResourceItem->GetItemGuid();
-			Inventory::Remove(Context, ItemGuid);
-			AmountPaid = RepairCost;
 		}
 	}
 

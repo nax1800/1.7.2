@@ -30,39 +30,44 @@ void Building::ServerCreateBuildingActor(UObject* Context, FFrame& Stack)
 	Stack.StepCompiledIn(&bMirrored);
 	Stack.IncrementCode();
 
-	Log(L"fix ");
-	auto PlayerController = (AFortPlayerController*)Context;
-	if (!PlayerController)
-		return callOG(PlayerController, Stack.CurrentNativeFunction, ServerCreateBuildingActor, BuildingClassData, BuildLoc, BuildRot, bMirrored);
-	auto BuildingClass = BuildingClassData.BuildingClass;
-
 	TArray<ABuildingSMActor*> RemoveBuildings;
 	char _Unknown;
+	UFortGameData* GameData = UFortGameData::Get();
+
+	AFortPlayerController* PlayerController = Context->Cast<AFortPlayerController>();
+	if (PlayerController == nullptr)
+		return callOG(PlayerController, Stack.CurrentNativeFunction, ServerCreateBuildingActor, BuildingClassData, BuildLoc, BuildRot, bMirrored);
+
+	TSubclassOf<ABuildingActor> BuildingClass = BuildingClassData.BuildingClass;
+
 	static auto CantBuild = (__int64 (*)(UWorld*, UObject*, FVector, FRotator, bool, TArray<ABuildingSMActor*> *, char*))(ImageBase + 0x5aa4b0);
 	if (CantBuild(UWorld::GetWorld(), BuildingClass, BuildLoc, BuildRot, bMirrored, &RemoveBuildings, &_Unknown))
 		return callOG(PlayerController, Stack.CurrentNativeFunction, ServerCreateBuildingActor, BuildingClassData, BuildLoc, BuildRot, bMirrored);
-	auto Resource = GetResourceItemDefinition(((ABuildingSMActor*)BuildingClass->DefaultObject)->ResourceType);
-	auto ItemEntry = PlayerController->WorldInventory->Inventory.ReplicatedEntries.Search([&](FFortItemEntry& entry)
+
+	UFortResourceItemDefinition* Resource = GameData->GetResourceItemDefinition(((ABuildingSMActor*)BuildingClass->DefaultObject)->ResourceType);
+	FFortItemEntry* ItemEntry = PlayerController->WorldInventory->Inventory.ReplicatedEntries.Search([&](FFortItemEntry& entry)
 		{ return entry.ItemDefinition == Resource; });
-	if (!ItemEntry || ItemEntry->Count < 10)
+
+	if (ItemEntry == nullptr || ItemEntry->Count < 10)
 		return callOG(PlayerController, Stack.CurrentNativeFunction, ServerCreateBuildingActor, BuildingClassData, BuildLoc, BuildRot, bMirrored);
 
 	ItemEntry->Count -= 10;
 	if (ItemEntry->Count <= 0)
 		Inventory::Remove(PlayerController, ItemEntry->ItemGuid);
+
 	Inventory::ReplaceEntry((AFortPlayerControllerAthena*)PlayerController, *ItemEntry);
 
-	for (auto& RemoveBuilding : RemoveBuildings)
+	for (ABuildingSMActor* RemoveBuilding : RemoveBuildings)
+	{
 		RemoveBuilding->K2_DestroyActor();
+	}
 	RemoveBuildings.Free();
 
 	ABuildingSMActor* Building = Utils::FinishSpawnActor<ABuildingSMActor>(Utils::SpawnActorUnfinished<ABuildingSMActor>(BuildingClass, BuildLoc, BuildRot, PlayerController), BuildLoc, BuildRot);
 	Building->bPlayerPlaced = true;
 	Building->InitializeKismetSpawnedBuildingActor(Building, PlayerController);
 	Building->Team = ((AFortPlayerStateAthena*)PlayerController->PlayerState)->TeamIndex;
-	//PlayerController->bBuildFree = true;
 
-	//return OG(PlayerController, CreateBuildingData);
 	return callOG(PlayerController, Stack.CurrentNativeFunction, ServerCreateBuildingActor, BuildingClassData, BuildLoc, BuildRot, bMirrored);
 }
 
